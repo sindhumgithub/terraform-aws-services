@@ -29,7 +29,7 @@ resource "terraform_data" "provisioner" {
 
   # Copy the correct script
   provisioner "file" {
-    source      = "services.sh"
+    source      = "${path.module}/services/${var.service_name}.sh"
     destination = "/tmp/services.sh"
   }
 
