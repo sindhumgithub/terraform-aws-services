@@ -22,9 +22,6 @@ variable "ssh_password" {
   type        = string
 }
 
-variable "health_check_interval" {
-  type        = number
-}
 
 
 variable "priority" {

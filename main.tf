@@ -14,7 +14,7 @@ resource "aws_instance" "this" {
 }
 
 #2. configure ec2 instance.
-resource "terraform_data" "provisioner" {
+resource "terraform_data" "this" {
   triggers_replace = [
     aws_instance.this.id  # Re-run if instance is replaced
   ]
@@ -48,7 +48,7 @@ resource "terraform_data" "provisioner" {
 resource "aws_ec2_instance_state" "this" {
   instance_id = aws_instance.this.id
   state       = "stopped"
-  depends_on = [terraform_data.provisioner]
+  depends_on = [terraform_data.this]
 }
 
 
@@ -57,7 +57,11 @@ resource "aws_ami_from_instance" "this" {
   name               = "${local.common_name_suffix}-${var.service_name}-ami"
   source_instance_id = aws_instance.this.id
   depends_on = [aws_ec2_instance_state.this]
-    tags = merge (
+  provisioner "local-exec" {
+    command = "aws ec2 terminate-instances --instance-ids ${aws_instance.this.id}"
+  }
+
+  tags = merge (
     local.common_tags,
     {
       Name = "${local.common_name_suffix}-${var.service_name}"
@@ -75,13 +79,13 @@ resource "aws_lb_target_group" "this" {
 
   health_check {
     healthy_threshold   = 2
-    interval            = var.health_check_interval
+    interval            = 10
     matcher             = "200-299"
     path                = "/health"
     port                = 8080
     protocol            = "HTTP"
     timeout             = 2
-    unhealthy_threshold = 2
+    unhealthy_threshold = 3
   }
 }
 
@@ -193,3 +197,4 @@ resource "aws_lb_listener_rule" "this" {
     }
   }
 }
+
