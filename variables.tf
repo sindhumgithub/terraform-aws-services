@@ -35,6 +35,6 @@ variable "domain_name" {
   type = string
 }
 
-variable "source_path" {
+variable "script_source_path" {
   type        = string
 }
