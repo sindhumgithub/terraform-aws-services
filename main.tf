@@ -23,13 +23,13 @@ resource "terraform_data" "provisioner" {
     type     = "ssh"
     user     = var.ssh_user
     password = var.ssh_password
-    host     = var.instance.private_ip
+    host     = aws_instance.this.private_ip
     timeout  = "5m"
   }
 
   # Copy the correct script
   provisioner "file" {
-    source      = "${path.module}/services/${var.service_name}.sh"
+    source      =   var.script_source_path   #"${path.module}/services/${var.service_name}.sh"
     destination = "/tmp/services.sh"
   }
 
@@ -46,7 +46,7 @@ resource "terraform_data" "provisioner" {
 
 #3. Stop EC2 Instance to take AMI ID
 resource "aws_ec2_instance_state" "this" {
-  instance_id = var.instance.id
+  instance_id = aws_instance.this.id
   state       = "stopped"
   depends_on = [terraform_data.provisioner]
 }
@@ -132,7 +132,7 @@ resource "aws_launch_template" "this" {
 
 
 #7. Autoscaling code 
-resource "aws_autoscaling_group" "catalogue" {
+resource "aws_autoscaling_group" "this" {
   name                      = "${local.common_name_suffix}-${var.service_name}"
   max_size                  = 10
   min_size                  = 1
@@ -141,8 +141,8 @@ resource "aws_autoscaling_group" "catalogue" {
   desired_capacity          = 1
   force_delete              = false
   launch_template {
-    id      = aws_launch_template.catalogue.id
-    version = aws_launch_template.catalogue.latest_version
+    id      = aws_launch_template.this.id
+    version = aws_launch_template.this.latest_version
   }
   vpc_zone_identifier       = local.private_subnet_ids
   target_group_arns = [aws_lb_target_group.catalogue.arn]
@@ -166,8 +166,8 @@ resource "aws_autoscaling_group" "catalogue" {
 
 
 #8. Autoscaling policy code.
-resource "aws_autoscaling_policy" "user" {
-  autoscaling_group_name = aws_autoscaling_group.user.name
+resource "aws_autoscaling_policy" "this" {
+  autoscaling_group_name = aws_autoscaling_group.this.name
   name                   = "${local.common_name_suffix}-${var.service_name}"
   policy_type            = "TargetTrackingScaling"
 
@@ -181,18 +181,18 @@ resource "aws_autoscaling_policy" "user" {
 }
 
 #9. Load Balancer Rule
-resource "aws_lb_listener_rule" "user" {
+resource "aws_lb_listener_rule" "this" {
   listener_arn = local.backend_alb_listener_arn
   priority     = var.priority
 
   action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.user.arn
+    target_group_arn = aws_lb_target_group.this.arn
   }
 
   condition {
     host_header {
-      values = ["user.backend-alb-${var.environment}.${var.domain_name}"]
+      values = ["${var.service_name}.backend-alb-${var.environment}.${var.domain_name}"]
     }
   }
 }
