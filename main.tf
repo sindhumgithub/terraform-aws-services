@@ -88,12 +88,9 @@ resource "aws_lb_target_group" "this" {
 # 6. terraform code to create launch template.
 resource "aws_launch_template" "this" {
   name = "${local.common_name_suffix}-${var.service_name}"
-
   image_id = local.ami_id
-
   instance_initiated_shutdown_behavior = "terminate"
-  instance_type                        = var.instance_type
-
+  instance_type = var.instance_type
   vpc_security_group_ids = [local.sg_id]
 
   # Tags for Instances
@@ -145,7 +142,7 @@ resource "aws_autoscaling_group" "this" {
     version = aws_launch_template.this.latest_version
   }
   vpc_zone_identifier       = local.private_subnet_ids
-  target_group_arns = [aws_lb_target_group.catalogue.arn]
+  target_group_arns = [aws_lb_target_group.this.arn]
   dynamic "tag" {  # We will get the iterator with name as tag
     for_each = merge(
       local.common_tags,
