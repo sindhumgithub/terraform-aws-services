@@ -22,8 +22,6 @@ variable "ssh_password" {
   type        = string
 }
 
-
-
 variable "priority" {
   type = number
 }
